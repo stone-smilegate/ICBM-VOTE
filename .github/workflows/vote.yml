@@ -1,5 +1,5 @@
 name: 점심 투표 기록
-
+ 
 on:
   repository_dispatch:
     types: [lunch-vote]
