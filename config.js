@@ -5,7 +5,7 @@
 
 // 1. GitHub Personal Access Token
 //    (fine-grained PAT, Issues: Read & Write)
-const GITHUB_TOKEN = "1234";  // ← 여기에 붙여넣기
+const GITHUB_TOKEN = "dddd";  // ← 여기에 붙여넣기
 
 // 2. 이 파일이 올라갈 GitHub 레포지토리 소유자 (유저명 또는 org명)
 const REPO_OWNER = "stone-smilegate";    // 예: "your-username"
