@@ -14,7 +14,7 @@ jobs:
       - name: 투표 댓글 저장 / 수정
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: "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"
           script: |
             const payload = context.payload.client_payload;
             const nickname = payload.nickname;
