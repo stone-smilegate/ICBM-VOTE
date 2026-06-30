@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>점심 투표 - 쏠리드</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f5f5f7; min-height: 100vh; padding: 24px 16px; }
+  .header { text-align: center; margin-bottom: 28px; }
+  .badge { display: inline-block; background: #e8f4ff; color: #0071e3; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #1d1d1f; }
+  .header p { font-size: 13px; color: #86868b; margin-top: 6px; }
+  .total-info { text-align: center; font-size: 13px; color: #86868b; margin-bottom: 8px; }
+  .total-info strong { color: #1d1d1f; }
+  .status-bar { text-align: center; font-size: 12px; color: #86868b; margin-bottom: 14px; min-height: 18px; }
+  .status-bar.err { color: #ff3b30; } .status-bar.ok { color: #34c759; } .status-bar.saving { color: #ff9500; }
+  .card { background: white; border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 16px; transition: transform 0.15s, box-shadow 0.15s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+  .rank { font-size: 22px; font-weight: 800; min-width: 28px; text-align: center; }
+  .info { flex: 1; min-width: 0; }
+  .name { font-size: 16px; font-weight: 700; color: #1d1d1f; margin-bottom: 4px; }
+  .meta { font-size: 12px; color: #86868b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tag { background: #f2f2f7; border-radius: 6px; padding: 2px 8px; font-size: 11px; color: #555; font-weight: 500; }
+  .dist { font-size: 12px; color: #0071e3; font-weight: 600; }
+  .link-btn { font-size: 11px; color: #0071e3; text-decoration: none; }
+  .link-btn:hover { text-decoration: underline; }
+  .bar-wrap { margin-top: 6px; height: 5px; background: #f2f2f7; border-radius: 10px; overflow: hidden; }
+  .bar { height: 100%; background: linear-gradient(90deg, #0071e3, #34aadc); border-radius: 10px; transition: width 0.4s; }
+  .vote-stat { font-size: 11px; color: #86868b; margin-top: 3px; }
+  .voter-list { font-size: 11px; color: #86868b; margin-top: 2px; }
+  .voter-list b { color: #1d1d1f; }
+  .btn-vote { background: #0071e3; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s, transform 0.1s; }
+  .btn-vote:hover { background: #0077ed; transform: scale(1.08); }
+  .btn-vote.voted { background: #34c759; }
+  .reset-btn { display: block; margin: 20px auto 0; background: none; border: 1.5px solid #d1d1d6; border-radius: 20px; padding: 8px 22px; font-size: 13px; color: #86868b; cursor: pointer; }
+  .reset-btn:hover { border-color: #86868b; color: #1d1d1f; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  .modal { background: white; border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+  .modal h2 { font-size: 18px; font-weight: 700; color: #1d1d1f; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: #86868b; margin-bottom: 20px; line-height: 1.5; }
+  .modal input { width: 100%; padding: 12px 14px; border: 1.5px solid #d1d1d6; border-radius: 12px; font-size: 15px; font-family: inherit; outline: none; margin-bottom: 12px; }
+  .modal input:focus { border-color: #0071e3; }
+  .modal-btn { width: 100%; padding: 13px; background: #0071e3; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; }
+  .modal-btn:hover { background: #0077ed; }
+</style>
+</head>
+<body>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>👋 누구세요?</h2>
+    <p>투표 전에 이름(닉네임)을<br>입력해 주세요.</p>
+    <input type="text" id="nicknameInput" placeholder="예: 김철수" maxlength="12" />
+    <button class="modal-btn" id="nicknameSaveBtn">참여하기</button>
+  </div>
+</div>
+
+<div class="header">
+  <div class="badge">📍 쏠리드 기준 가까운 순</div>
+  <h1>🍽️ 크리에이티브팀어셈블</h1>
+  <p>📅 2026년 6월 30일 (화) 오후 6시</p>
+  <p style="margin-top:4px;">원하는 곳에 투표하세요! 중복 선택 가능</p>
+</div>
+
+<div class="total-info">총 <strong id="totalVotes">0</strong>표 · <span id="voterCount">0</span>명 참여</div>
+<div class="status-bar" id="statusBar">불러오는 중...</div>
+<div id="cardList"></div>
+<button class="reset-btn" onclick="resetVotes()">🔄 내 투표 취소</button>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:10px;">GitHub에 저장 · 30초마다 자동 갱신</p>
+
+<script>
+// ★ 여기만 수정하세요 ★
+const TOKEN       = "";   // GitHub Classic PAT (repo 권한)
+const REPO_OWNER  = "stone-smilegate";
+const REPO_NAME   = "ICBM-VOTE";
+const ISSUE_NUM   = 1;
+// ★★★★★★★★★★★★★
+
+const COMMENTS_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${ISSUE_NUM}/comments`;
+const headers = () => ({
+  'Authorization': `token ${TOKEN}`,
+  'Accept': 'application/vnd.github+json',
+  'Content-Type': 'application/json'
+});
+
+// 식당
+const SOLID = [37.4015893, 127.1084358];
+const list = [
+  { id:1, name:"진1926",    tag:"🥩 프렌치랙·양갈비", pos:[37.3981361,127.1119978], url:"https://naver.me/5HkaWmAe" },
+  { id:2, name:"로스옥",    tag:"🥩 한우",             pos:[37.3967169,127.1135877], url:"https://naver.me/5YSr52dO" },
+  { id:3, name:"팔복 판교", tag:"🥢 중식",             pos:[37.4027741,127.1068214], url:"https://naver.me/GyYblDyJ" },
+  { id:4, name:"도원참치",  tag:"🐟 참치",             pos:[37.3974044,127.1120122], url:"https://naver.me/FbOvsUC4" },
+  { id:5, name:"몽중헌",    tag:"🥢 중식",             pos:[37.3949967,127.1125512], url:"https://naver.me/Fio7MPZ4" }
+];
+const rad = d => d*Math.PI/180;
+function km([a,b],[c,d]){ const R=6371,dL=rad(c-a),dG=rad(d-b),x=Math.sin(dL/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dG/2)**2; return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x)); }
+list.forEach(r => r.dist = km(SOLID, r.pos));
+list.sort((a,b) => a.dist - b.dist);
+const dl = m => m<1 ? Math.round(m*1000)+'m' : m.toFixed(1)+'km';
+
+// 상태
+let myNick = localStorage.getItem('lv_nick') || '';
+let myVotes = JSON.parse(localStorage.getItem('lv_myvotes') || '{}');
+let myCid = +localStorage.getItem('lv_cid') || 0;
+let allVotes = {};
+list.forEach(r => allVotes[r.id] = []);
+
+// 닉네임 모달
+const modalBg = document.getElementById('modalBg');
+if (myNick) modalBg.style.display = 'none';
+document.getElementById('nicknameSaveBtn').onclick = () => {
+  const v = document.getElementById('nicknameInput').value.trim();
+  if (!v) return;
+  myNick = v; localStorage.setItem('lv_nick', v);
+  modalBg.style.display = 'none';
+  load();
+};
+document.getElementById('nicknameInput').onkeydown = e => { if(e.key==='Enter') document.getElementById('nicknameSaveBtn').click(); };
+
+// 상태바
+const st = (msg, cls='') => { const el=document.getElementById('statusBar'); el.textContent=msg; el.className='status-bar '+cls; };
+
+// 읽기
+async function load() {
+  try {
+    const r = await fetch(COMMENTS_URL+'?per_page=100', { headers: headers() });
+    if (!r.ok) throw new Error(r.status+' '+r.statusText);
+    const data = await r.json();
+    list.forEach(r => allVotes[r.id] = []);
+    for (const c of data) {
+      try {
+        const m = c.body.match(/```json\s*([\s\S]*?)```/);
+        if (!m) continue;
+        const d = JSON.parse(m[1]);
+        if (d.type !== 'lv') continue;
+        for (const id of (d.votes||[])) if (allVotes[id]) allVotes[id].push(d.nick);
+        if (d.nick === myNick) myCid = c.id;
+      } catch(_){}
+    }
+    st('방금 업데이트됨', 'ok');
+    setTimeout(()=>st(''), 2000);
+  } catch(e) { st('불러오기 실패: '+e.message, 'err'); }
+  render();
+}
+
+// 쓰기
+async function save() {
+  const voted = Object.entries(myVotes).filter(([,v])=>v).map(([id])=>+id);
+  const body = '```json\n'+JSON.stringify({type:'lv',nick:myNick,votes:voted,t:Date.now()},null,2)+'\n```';
+  try {
+    st('저장 중...', 'saving');
+    let r;
+    if (myCid) {
+      r = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/comments/${myCid}`, {
+        method:'PATCH', headers:headers(), body:JSON.stringify({body})
+      });
+    } else {
+      r = await fetch(COMMENTS_URL, { method:'POST', headers:headers(), body:JSON.stringify({body}) });
+    }
+    if (!r.ok) throw new Error(r.status+' '+r.statusText);
+    const d = await r.json();
+    myCid = d.id;
+    localStorage.setItem('lv_cid', myCid);
+    localStorage.setItem('lv_myvotes', JSON.stringify(myVotes));
+    await load();
+  } catch(e) { st('저장 실패: '+e.message, 'err'); }
+}
+
+// 투표
+function vote(id) {
+  if (!myNick) { modalBg.style.display='flex'; return; }
+  myVotes[id] = !myVotes[id];
+  if (myVotes[id]) { if (!allVotes[id].includes(myNick)) allVotes[id].push(myNick); }
+  else allVotes[id] = allVotes[id].filter(n=>n!==myNick);
+  render(); save();
+}
+function resetVotes() {
+  list.forEach(r=>{ myVotes[r.id]=false; allVotes[r.id]=allVotes[r.id].filter(n=>n!==myNick); });
+  render(); save();
+}
+
+// 렌더
+function render() {
+  const total = Object.values(allVotes).reduce((a,v)=>a+v.length,0);
+  const voters = new Set(Object.values(allVotes).flat());
+  document.getElementById('totalVotes').textContent = total;
+  document.getElementById('voterCount').textContent = voters.size;
+
+  const sorted = [...list].sort((a,b)=>{
+    const d=allVotes[b.id].length-allVotes[a.id].length;
+    return d||a.dist-b.dist;
+  });
+  const em = ['🥇','🥈','🥉'];
+  const el = document.getElementById('cardList');
+  el.innerHTML='';
+  sorted.forEach((r,i)=>{
+    const cnt=allVotes[r.id].length, pct=total?Math.round(cnt/total*100):0, voted=!!myVotes[r.id];
+    const names=allVotes[r.id].map(n=>n===myNick?`<b>${n}</b>`:n).join(', ');
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`
+      <div class="rank">${i<3?em[i]:i+1}</div>
+      <div class="info">
+        <div class="name">${r.name}</div>
+        <div class="meta">
+          <span class="tag">${r.tag}</span>
+          <span class="dist">📍 ${dl(r.dist)}</span>
+          <a class="link-btn" href="${r.url}" target="_blank">네이버지도 →</a>
+        </div>
+        <div class="bar-wrap"><div class="bar" style="width:${pct}%"></div></div>
+        <div class="vote-stat">${cnt}표 · ${pct}%</div>
+        ${names?`<div class="voter-list">👤 ${names}</div>`:''}
+      </div>
+      <button class="btn-vote ${voted?'voted':''}" onclick="vote(${r.id})">${voted?'✓':'👍'}</button>`;
+    el.appendChild(card);
+  });
+}
+
+if (myNick) load(); else render();
+setInterval(()=>{ if(myNick) load(); }, 30000);
+</script>
+</body>
+</html>
